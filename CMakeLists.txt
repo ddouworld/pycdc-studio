@@ -47,6 +47,8 @@ set(PROJECT_SOURCES
     src/ui/lucide_icon_factory.h
     src/ui/main_window.cpp
     src/ui/main_window.h
+    src/ui/model_picker_dialog.cpp
+    src/ui/model_picker_dialog.h
     src/ui/settings_dialog.cpp
     src/ui/settings_dialog.h
 )

@@ -41,6 +41,9 @@
 #include "src/service/decompiler_service.h"
 #include "src/service/fallback_service.h"
 #include "src/ui/lucide_icon_factory.h"
+#include <QComboBox>
+
+#include "src/ai/ai_provider_config.h"
 #include "src/ui/settings_dialog.h"
 
 namespace {
@@ -335,6 +338,57 @@ void MainWindow::buildUi()
     heroActionRow->addWidget(saveMergedButton);
     heroActions->addLayout(heroActionRow);
     heroActions->addWidget(retryHint);
+
+    // -- Provider / Model selection row
+    auto *providerRow = new QHBoxLayout();
+    providerRow->setSpacing(8);
+
+    auto *providerLabel = new QLabel(tr("Provider:"), heroCard);
+    providerLabel->setObjectName(QStringLiteral("heroActionHint"));
+    m_providerCombo = new QComboBox(heroCard);
+    m_providerCombo->setMinimumWidth(130);
+    m_providerCombo->setToolTip(tr("Active AI provider used for reconstruction"));
+
+    auto *modelLabel = new QLabel(tr("Model:"), heroCard);
+    modelLabel->setObjectName(QStringLiteral("heroActionHint"));
+    m_modelCombo = new QComboBox(heroCard);
+    m_modelCombo->setMinimumWidth(160);
+    m_modelCombo->setEditable(true);
+    m_modelCombo->setToolTip(tr("Model to use for AI reconstruction"));
+
+    providerRow->addWidget(providerLabel);
+    providerRow->addWidget(m_providerCombo, 1);
+    providerRow->addWidget(modelLabel);
+    providerRow->addWidget(m_modelCombo, 2);
+    heroActions->addLayout(providerRow);
+
+    connect(m_providerCombo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            [this](int providerIdx) {
+                if (!m_modelCombo) {
+                    return;
+                }
+                const QList<AiProviderConfig> all = AiProviderConfig::loadAll();
+                if (providerIdx < 0 || providerIdx >= all.size()) {
+                    return;
+                }
+                const AiProviderConfig &cfg = all.at(providerIdx);
+                m_modelCombo->blockSignals(true);
+                m_modelCombo->clear();
+                const QStringList mlist = cfg.models.isEmpty()
+                    ? (cfg.model.isEmpty() ? QStringList{} : QStringList{cfg.model})
+                    : cfg.models;
+                m_modelCombo->addItems(mlist);
+                const int midx = m_modelCombo->findText(cfg.model);
+                if (midx >= 0) {
+                    m_modelCombo->setCurrentIndex(midx);
+                } else if (!cfg.model.isEmpty()) {
+                    m_modelCombo->setEditText(cfg.model);
+                }
+                m_modelCombo->blockSignals(false);
+            });
+
     heroTop->addLayout(heroActions, 0);
     heroLayout->addLayout(heroTop);
 
@@ -450,6 +504,7 @@ void MainWindow::buildUi()
     setCentralWidget(central);
     statusBar()->setSizeGripEnabled(false);
     statusBar()->showMessage(tr("Ready"));
+    refreshProviderCombo();
 
     connect(retryButton, &QPushButton::clicked, this, &MainWindow::retryCurrentNodeWithAi);
     connect(saveMergedButton, &QPushButton::clicked, this, &MainWindow::saveMergedResult);
@@ -672,6 +727,7 @@ void MainWindow::openSettings()
 
     if (m_context) {
         m_context->aiClient().reloadFromEnvironment();
+        refreshProviderCombo();
         m_context->session().setStatusMessage(tr("Settings saved."));
         m_context->session().appendLogLine(tr("[settings] application settings updated"));
     }
@@ -693,6 +749,24 @@ void MainWindow::retryCurrentNodeWithAi()
     if (!m_context || !m_treeWidget->currentItem()) {
         return;
     }
+
+    // Apply the selected provider/model from the hero combos before retrying
+    const int providerIdx = m_providerCombo ? m_providerCombo->currentIndex() : -1;
+    if (providerIdx >= 0) {
+        const QList<AiProviderConfig> all = AiProviderConfig::loadAll();
+        if (providerIdx < all.size()) {
+            AiProviderConfig cfg = all.at(providerIdx);
+            // Override model with what is currently shown in the model combo
+            if (m_modelCombo && !m_modelCombo->currentText().trimmed().isEmpty()) {
+                cfg.model = m_modelCombo->currentText().trimmed();
+            }
+            // Save the active choice so aiClient picks it up
+            QList<AiProviderConfig> mutable_all = all;
+            mutable_all[providerIdx] = cfg;
+            AiProviderConfig::saveAll(mutable_all, providerIdx);
+        }
+    }
+    m_context->aiClient().reloadFromEnvironment();
 
     const QString nodeId = m_treeWidget->currentItem()->data(0, kNodeIdRole).toString();
     m_context->fallbackService().retryNodeWithAi(nodeId);
@@ -866,4 +940,44 @@ void MainWindow::updateNodeDetails(QTreeWidgetItem *current, QTreeWidgetItem *pr
     m_promptEdit->setPlainText(session.promptPreviewText());
     m_logEdit->setPlainText(session.logText());
     m_aiEdit->setPlainText(node->aiSource);
+}
+
+void MainWindow::refreshProviderCombo()
+{
+    if (!m_providerCombo || !m_modelCombo) {
+        return;
+    }
+
+    const QList<AiProviderConfig> all = AiProviderConfig::loadAll();
+    const int activeIdx = AiProviderConfig::loadActiveIndex();
+
+    m_providerCombo->blockSignals(true);
+    m_modelCombo->blockSignals(true);
+    m_providerCombo->clear();
+
+    for (const AiProviderConfig &cfg : all) {
+        const QString label = cfg.name.isEmpty() ? tr("(unnamed)") : cfg.name;
+        m_providerCombo->addItem(label);
+    }
+
+    const int safeIdx = (activeIdx >= 0 && activeIdx < all.size()) ? activeIdx : 0;
+    m_providerCombo->setCurrentIndex(safeIdx);
+
+    m_modelCombo->clear();
+    if (safeIdx < all.size()) {
+        const AiProviderConfig &cfg = all.at(safeIdx);
+        const QStringList mlist = cfg.models.isEmpty()
+            ? (cfg.model.isEmpty() ? QStringList{} : QStringList{cfg.model})
+            : cfg.models;
+        m_modelCombo->addItems(mlist);
+        const int midx = m_modelCombo->findText(cfg.model);
+        if (midx >= 0) {
+            m_modelCombo->setCurrentIndex(midx);
+        } else if (!cfg.model.isEmpty()) {
+            m_modelCombo->setEditText(cfg.model);
+        }
+    }
+
+    m_providerCombo->blockSignals(false);
+    m_modelCombo->blockSignals(false);
 }

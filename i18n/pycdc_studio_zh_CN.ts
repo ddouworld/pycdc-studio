@@ -105,6 +105,51 @@ Native Error:
     <message><source>Ctrl+R</source><translation>Ctrl+R</translation></message>
     <message><source>Language Restart Required</source><translation>需要重启以应用语言</translation></message>
     <message><source>The language setting was saved, but the application could not be restarted automatically. Please restart it manually.</source><translation>语言设置已保存，但应用无法自动重启。请手动重启应用。</translation></message>
+    <!-- 新增：主界面 provider/model 选择行 -->
+    <message><source>Provider:</source><translation>服务商：</translation></message>
+    <message><source>Model:</source><translation>模型：</translation></message>
+    <message><source>Active AI provider used for reconstruction</source><translation>用于 AI 重建的当前服务商</translation></message>
+    <message><source>Model to use for AI reconstruction</source><translation>用于 AI 重建的模型</translation></message>
+    <message><source>(unnamed)</source><translation>（未命名）</translation></message>
+</context>
+<context>
+    <name>ModelPickerDialog</name>
+    <message><source>Select Models</source><translation>选择模型</translation></message>
+    <message><source>Model Manager</source><translation>模型管理</translation></message>
+    <message><source>Add models manually or fetch from the provider. Check items to enable. Click a row to select it as the active model.</source><translation>可手动添加模型或从服务商拉取。勾选启用，点击行选中为当前模型。</translation></message>
+    <message><source>Enter model name, e.g. gpt-4o-mini</source><translation>输入模型名，例如 gpt-4o-mini</translation></message>
+    <message><source>Add</source><translation>添加</translation></message>
+    <message><source>Fetch Models</source><translation>拉取模型列表</translation></message>
+    <message><source>Fetch available models from the provider&apos;s /models endpoint</source><translation>从服务商的 /models 接口拉取可用模型列表</translation></message>
+    <message><source>Test Checked</source><translation>测试勾选项</translation></message>
+    <message><source>Test all checked models and show status and latency per model</source><translation>对所有勾选的模型逐一发起测试，在每行显示状态和响应时间</translation></message>
+    <message><source>Remove</source><translation>移除</translation></message>
+    <message><source>No test run yet.</source><translation>尚未进行测试。</translation></message>
+    <message><source>Use Selected</source><translation>使用选中模型</translation></message>
+    <message><source>Cancel</source><translation>取消</translation></message>
+    <message><source>Base URL or API Key is missing; cannot fetch models.</source><translation>Base URL 或 API Key 未填写，无法拉取模型列表。</translation></message>
+    <message><source>Fetching models...</source><translation>正在拉取模型列表...</translation></message>
+    <message><source>Request was canceled.</source><translation>请求已取消。</translation></message>
+    <message><source>Fetch timed out.</source><translation>拉取超时。</translation></message>
+    <message><source>Failed to parse response from /models.</source><translation>解析 /models 响应失败。</translation></message>
+    <message><source>Unknown error</source><translation>未知错误</translation></message>
+    <message><source>API error: %1</source><translation>API 错误：%1</translation></message>
+    <message><source>No models returned by the provider.</source><translation>服务商未返回任何模型。</translation></message>
+    <message><source>Fetched %1 model(s); %2 new added.</source><translation>已拉取 %1 个模型，新增 %2 个。</translation></message>
+    <message><source>No checked models to test.</source><translation>没有勾选的模型可供测试。</translation></message>
+    <message><source>Base URL or API Key is missing; cannot test.</source><translation>Base URL 或 API Key 未填写，无法测试。</translation></message>
+    <message><source>Testing %1 checked model(s)...</source><translation>正在测试 %1 个勾选的模型...</translation></message>
+    <message><source>Testing...</source><translation>测试中...</translation></message>
+    <message><source>Response received.</source><translation>已收到响应。</translation></message>
+    <message><source>API error</source><translation>API 错误</translation></message>
+    <message><source>Unexpected response format.</source><translation>响应格式异常。</translation></message>
+    <message><source>HTTP %1</source><translation>HTTP %1</translation></message>
+    <message><source>Invalid JSON response.</source><translation>无效的 JSON 响应。</translation></message>
+    <message><source>Test canceled.</source><translation>测试已取消。</translation></message>
+    <message><source>Timed out</source><translation>超时</translation></message>
+    <message><source>All tests completed.</source><translation>全部测试完成。</translation></message>
+    <message><source>OK  %1 ms</source><translation>成功  %1 ms</translation></message>
+    <message><source>FAIL  %1 ms</source><translation>失败  %1 ms</translation></message>
 </context>
 <context>
     <name>OpenAiCompatibleClient</name>
@@ -122,7 +167,7 @@ Native Error:
     <message><source>invalid-input</source><translation>invalid-input</translation></message>
     <message><source>Input file path is empty.</source><translation>输入文件路径为空。</translation></message>
     <message><source>process-start-failed</source><translation>process-start-failed</translation></message>
-    <message><source>Failed to start pycdas from '%1'. Make sure the executable exists and is accessible.</source><translation>无法从“%1”启动 pycdas。请确认可执行文件存在且可访问。</translation></message>
+    <message><source>Failed to start pycdas from '%1'. Make sure the executable exists and is accessible.</source><translation>无法从"%1"启动 pycdas。请确认可执行文件存在且可访问。</translation></message>
     <message><source>disassemble-failed</source><translation>disassemble-failed</translation></message>
     <message><source>pycdas exited with code %1.</source><translation>pycdas 退出码为 %1。</translation></message>
 </context>
@@ -131,7 +176,7 @@ Native Error:
     <message><source>invalid-input</source><translation>invalid-input</translation></message>
     <message><source>Input file path is empty.</source><translation>输入文件路径为空。</translation></message>
     <message><source>process-start-failed</source><translation>process-start-failed</translation></message>
-    <message><source>Failed to start pycdc from '%1'. Make sure the executable exists and is accessible.</source><translation>无法从“%1”启动 pycdc。请确认可执行文件存在且可访问。</translation></message>
+    <message><source>Failed to start pycdc from '%1'. Make sure the executable exists and is accessible.</source><translation>无法从"%1"启动 pycdc。请确认可执行文件存在且可访问。</translation></message>
     <message><source>decompile-failed</source><translation>decompile-failed</translation></message>
     <message><source>pycdc exited with code %1.</source><translation>pycdc 退出码为 %1。</translation></message>
 </context>
@@ -139,19 +184,34 @@ Native Error:
     <name>SettingsDialog</name>
     <message><source>Settings</source><translation>设置</translation></message>
     <message><source>Application Settings</source><translation>应用设置</translation></message>
-    <message><source>Saved values override environment variables. Leave a field empty to fall back to environment configuration. Language changes apply after restart.</source><translation>已保存的值会覆盖环境变量。字段留空时会回退到环境变量配置。语言切换需要在重启后生效。</translation></message>
-    <message><source>https://api.example.com/v1 or .../chat/completions</source><translation>https://api.example.com/v1 或 .../chat/completions</translation></message>
-    <message><source>sk-...</source><translation>sk-...</translation></message>
-    <message><source>gpt-4.1-mini / qwen-plus / ...</source><translation>gpt-4.1-mini / qwen-plus / ...</translation></message>
-    <message><source>Optional custom system prompt</source><translation>可选的自定义 system prompt</translation></message>
-    <message><source>Language</source><translation>语言</translation></message>
+    <message><source>Manage AI providers and models. The active provider is used for AI reconstruction. Language changes apply after restart.</source><translation>管理 AI 服务商与模型。当前激活的服务商用于 AI 重建。语言切换需重启后生效。</translation></message>
+    <message><source>Providers</source><translation>服务商</translation></message>
+    <message><source>Add new provider</source><translation>添加服务商</translation></message>
+    <message><source>Remove selected provider</source><translation>移除所选服务商</translation></message>
+    <message><source>Move up</source><translation>上移</translation></message>
+    <message><source>Move down</source><translation>下移</translation></message>
+    <message><source>Add</source><translation>添加</translation></message>
+    <message><source>Remove</source><translation>移除</translation></message>
+    <message><source>Provider Configuration</source><translation>服务商配置</translation></message>
+    <message><source>Name</source><translation>名称</translation></message>
+    <message><source>e.g. OpenAI, DeepSeek, Local Ollama</source><translation>例如 OpenAI、DeepSeek、本地 Ollama</translation></message>
     <message><source>Base URL</source><translation>Base URL</translation></message>
+    <message><source>https://api.example.com/v1</source><translation>https://api.example.com/v1</translation></message>
     <message><source>API Key</source><translation>API Key</translation></message>
+    <message><source>sk-...</source><translation>sk-...</translation></message>
     <message><source>Model</source><translation>模型</translation></message>
+    <message><source>gpt-4o-mini / qwen-plus / ...</source><translation>gpt-4o-mini / qwen-plus / ...</translation></message>
+    <message><source>Select Models...</source><translation>选择模型...</translation></message>
+    <message><source>Open model manager to add, fetch, test and select models</source><translation>打开模型管理器，可添加、拉取、测试并选择模型</translation></message>
     <message><source>System Prompt</source><translation>System Prompt</translation></message>
+    <message><source>Optional custom system prompt</source><translation>可选的自定义 system prompt</translation></message>
+    <message><source>Language:</source><translation>语言：</translation></message>
     <message><source>English</source><translation>English</translation></message>
     <message><source>简体中文</source><translation>简体中文</translation></message>
     <message><source>Save</source><translation>保存</translation></message>
     <message><source>Cancel</source><translation>取消</translation></message>
+    <message><source>Default</source><translation>默认</translation></message>
+    <message><source>New Provider</source><translation>新服务商</translation></message>
+    <message><source>(unnamed)</source><translation>（未命名）</translation></message>
 </context>
 </TS>

@@ -1,0 +1,351 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (example: 1.0.0 or v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.version }}
+  cancel-in-progress: false
+
+env:
+  PYCDC_REPO: https://github.com/zrax/pycdc.git
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.vars.outputs.release_tag }}
+      release_name: ${{ steps.vars.outputs.release_name }}
+    steps:
+      - name: Normalize version
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          raw="${{ github.event.inputs.version }}"
+          trimmed="$(echo "$raw" | xargs)"
+          if [[ -z "$trimmed" ]]; then
+            echo "Version input cannot be empty" >&2
+            exit 1
+          fi
+
+          normalized="${trimmed#v}"
+          normalized="${normalized#V}"
+          release_tag="v$normalized"
+          release_name="$normalized"
+
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
+
+  build-linux:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    env:
+      QT_VERSION: 6.8.2
+      QT_ARCH: linux_gcc_64
+    steps:
+      - name: Check out pycdc-studio
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            libegl1 \
+            libfontconfig1 \
+            libgl1-mesa-dev \
+            libxcb-cursor0 \
+            libxkbcommon-x11-0 \
+            ninja-build
+
+      - name: Install Qt with aqt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install "aqtinstall==3.3.0"
+          python -m aqt install-qt linux desktop "$QT_VERSION" "$QT_ARCH" --outputdir "$GITHUB_WORKSPACE/Qt"
+
+          qt_config="$(find "$GITHUB_WORKSPACE/Qt" -path '*/lib/cmake/Qt6/Qt6Config.cmake' -print -quit)"
+          if [[ -z "$qt_config" ]]; then
+            echo "Unable to locate Qt6Config.cmake after Qt installation." >&2
+            exit 1
+          fi
+
+          qt_root_dir="$(cd "$(dirname "$qt_config")/../../.." && pwd)"
+          echo "QT_ROOT_DIR=$qt_root_dir" >> "$GITHUB_ENV"
+
+      - name: Clone official pycdc
+        id: pycdc_checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "$PYCDC_REPO" external/pycdc
+          pycdc_commit="$(git -C external/pycdc rev-parse HEAD)"
+          echo "pycdc_commit=${pycdc_commit}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure pycdc-studio
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build/studio -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+
+      - name: Build pycdc-studio
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build/studio --parallel
+          cmake --install build/studio --prefix build/package
+
+      - name: Configure pycdc
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S external/pycdc -B build/pycdc -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build pycdc and pycdas
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build/pycdc --target pycdc pycdas --parallel
+
+      - name: Assemble release package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_tag="${{ needs.prepare.outputs.release_tag }}"
+          package_name="pycdc-studio-${release_tag}-linux-x64"
+          package_root="${RUNNER_TEMP}/${package_name}"
+          bin_dir="${package_root}/bin"
+          lib_dir="${package_root}/lib"
+          plugins_dir="${package_root}/plugins"
+          platforms_dir="${plugins_dir}/platforms"
+          xcb_gl_dir="${plugins_dir}/xcbglintegrations"
+          pycdc_commit="${{ steps.pycdc_checkout.outputs.pycdc_commit }}"
+
+          rm -rf "$package_root"
+          mkdir -p "$bin_dir" "$lib_dir" "$platforms_dir" "$xcb_gl_dir"
+
+          cp -a build/package/. "$package_root/"
+          cp -a build/pycdc/pycdc "$bin_dir/"
+          cp -a build/pycdc/pycdas "$bin_dir/"
+          chmod +x "$bin_dir/pycdc-studio" "$bin_dir/pycdc" "$bin_dir/pycdas"
+
+          for pattern in \
+            libQt6Core.so* \
+            libQt6DBus.so* \
+            libQt6Gui.so* \
+            libQt6Network.so* \
+            libQt6OpenGL.so* \
+            libQt6Widgets.so* \
+            libQt6XcbQpa.so* \
+            libicu*.so*; do
+            if compgen -G "${QT_ROOT_DIR}/lib/${pattern}" > /dev/null; then
+              cp -a "${QT_ROOT_DIR}"/lib/${pattern} "$lib_dir/"
+            fi
+          done
+
+          cp -a "${QT_ROOT_DIR}/plugins/platforms/libqxcb.so" "$platforms_dir/"
+          if [[ -d "${QT_ROOT_DIR}/plugins/xcbglintegrations" ]]; then
+            cp -a "${QT_ROOT_DIR}/plugins/xcbglintegrations/." "$xcb_gl_dir/"
+          fi
+
+          cat > "${package_root}/pycdc-studio.sh" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          APPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          export LD_LIBRARY_PATH="${APPDIR}/lib:${LD_LIBRARY_PATH:-}"
+          export QT_PLUGIN_PATH="${APPDIR}/plugins"
+          export QT_QPA_PLATFORM_PLUGIN_PATH="${APPDIR}/plugins/platforms"
+          exec "${APPDIR}/bin/pycdc-studio" "$@"
+          EOF
+          chmod +x "${package_root}/pycdc-studio.sh"
+
+          cp -a external/pycdc/LICENSE "${package_root}/LICENSE.pycdc.txt"
+          cp -a README.md "${package_root}/README.md"
+          if [[ -f README_CN.md ]]; then
+            cp -a README_CN.md "${package_root}/README_CN.md"
+          fi
+
+          cat > "${package_root}/THIRD_PARTY_NOTICES.txt" <<EOF
+          pycdc bundled source information
+          Repository: ${PYCDC_REPO}
+          Commit: ${pycdc_commit}
+          Bundled binaries: pycdc, pycdas
+          Source retrieval: clone the upstream repository at the commit above
+          EOF
+
+          tarball_path="${RUNNER_TEMP}/${package_name}.tar.gz"
+          rm -f "$tarball_path"
+          tar -C "$RUNNER_TEMP" -czf "$tarball_path" "$package_name"
+
+          echo "package_name=${package_name}" >> "$GITHUB_OUTPUT"
+          echo "artifact_path=${tarball_path}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload packaged tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.package_name }}
+          path: ${{ steps.package.outputs.artifact_path }}
+          if-no-files-found: error
+
+  build-windows:
+    needs: prepare
+    runs-on: windows-latest
+    env:
+      QT_VERSION: 6.8.3
+      QT_ARCH: win64_msvc2022_64
+    steps:
+      - name: Check out pycdc-studio
+        uses: actions/checkout@v6
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: ${{ env.QT_ARCH }}
+          cache: true
+
+      - name: Clone official pycdc
+        id: pycdc_checkout
+        shell: pwsh
+        run: |
+          git clone --depth 1 $env:PYCDC_REPO external\pycdc
+          $pycdcCommit = (git -C external\pycdc rev-parse HEAD).Trim()
+          "pycdc_commit=$pycdcCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Configure pycdc-studio
+        shell: pwsh
+        run: |
+          cmake -S . -B build\studio -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
+
+      - name: Build pycdc-studio
+        shell: pwsh
+        run: |
+          cmake --build build\studio --parallel
+          cmake --install build\studio --prefix build\package
+
+      - name: Configure pycdc
+        shell: pwsh
+        run: |
+          cmake -S external\pycdc -B build\pycdc -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build pycdc and pycdas
+        shell: pwsh
+        run: |
+          cmake --build build\pycdc --target pycdc pycdas --parallel
+
+      - name: Assemble release package
+        id: package
+        shell: pwsh
+        run: |
+          $releaseTag = "${{ needs.prepare.outputs.release_tag }}"
+          $packageName = "pycdc-studio-$releaseTag-windows-x64"
+          $packageRoot = Join-Path $env:RUNNER_TEMP $packageName
+          $binDir = Join-Path $packageRoot "bin"
+          $pycdcCommit = '${{ steps.pycdc_checkout.outputs.pycdc_commit }}'
+
+          if (Test-Path $packageRoot) {
+            Remove-Item -Recurse -Force $packageRoot
+          }
+
+          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+          Copy-Item -Recurse -Force build\package\* $packageRoot
+          Copy-Item -Force build\pycdc\pycdc.exe $binDir
+          Copy-Item -Force build\pycdc\pycdas.exe $binDir
+          Copy-Item -Force external\pycdc\LICENSE (Join-Path $packageRoot "LICENSE.pycdc.txt")
+          Copy-Item -Force README.md (Join-Path $packageRoot "README.md")
+          if (Test-Path README_CN.md) {
+            Copy-Item -Force README_CN.md (Join-Path $packageRoot "README_CN.md")
+          }
+
+          @(
+            "pycdc bundled source information",
+            "Repository: $env:PYCDC_REPO",
+            "Commit: $pycdcCommit",
+            "Bundled binaries: pycdc.exe, pycdas.exe",
+            "Source retrieval: clone the upstream repository at the commit above"
+          ) | Set-Content -Path (Join-Path $packageRoot "THIRD_PARTY_NOTICES.txt") -Encoding utf8
+
+          & "$env:QT_ROOT_DIR\bin\windeployqt.exe" --release "$binDir\pycdc-studio.exe"
+
+          $zipPath = Join-Path $env:RUNNER_TEMP ($packageName + ".zip")
+          if (Test-Path $zipPath) {
+            Remove-Item -Force $zipPath
+          }
+
+          Compress-Archive -Path $packageRoot -DestinationPath $zipPath
+
+          "package_name=$packageName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "artifact_path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload packaged zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.package_name }}
+          path: ${{ steps.package.outputs.artifact_path }}
+          if-no-files-found: error
+
+  release:
+    needs:
+      - prepare
+      - build-linux
+      - build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Generate release notes body
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .github/release-template.md RELEASE_BODY.md
+          sed -i "s/{{VERSION}}/${{ needs.prepare.outputs.release_tag }}/g" RELEASE_BODY.md
+
+      - name: Display downloaded files
+        shell: bash
+        run: |
+          set -euo pipefail
+          find dist -type f | sort
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.release_tag }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          body_path: RELEASE_BODY.md
+          files: |
+            dist/**/*.zip
+            dist/**/*.tar.gz
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
+          make_latest: true

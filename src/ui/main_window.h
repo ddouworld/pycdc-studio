@@ -5,6 +5,7 @@
 
 class QAction;
 class AppContext;
+class QComboBox;
 class QDragEnterEvent;
 class QDropEvent;
 class QPlainTextEdit;
@@ -41,6 +42,9 @@ private:
     void populateTreeItem(QTreeWidgetItem *parentItem, const class CodeObjectNode &node);
     QTreeWidgetItem *findTreeItemByNodeId(const QString &nodeId) const;
 
+    /** 刷新 heroCard 中的 Provider 和 Model 下拉框 */
+    void refreshProviderCombo();
+
     AppContext *m_context = nullptr;
     QAction *m_openAction = nullptr;
     QAction *m_saveMergedAction = nullptr;
@@ -57,6 +61,10 @@ private:
     QPlainTextEdit *m_metadataEdit = nullptr;
     QPlainTextEdit *m_promptEdit = nullptr;
     QPlainTextEdit *m_logEdit = nullptr;
+
+    // heroCard — provider / model 选择
+    QComboBox *m_providerCombo = nullptr;
+    QComboBox *m_modelCombo    = nullptr;
 };
 
 #endif // MAIN_WINDOW_H
