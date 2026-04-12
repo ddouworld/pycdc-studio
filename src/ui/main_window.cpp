@@ -518,6 +518,9 @@ void MainWindow::buildMenus()
                                        tr("Open .pyc..."));
     m_openAction->setShortcut(QKeySequence::Open);
 
+    m_importPyarmorAction = fileMenu->addAction(LucideIconFactory::icon(LucideIconFactory::IconType::Open, QColor("#9a6700")),
+                                                tr("Import Pyarmor Project..."));
+
     m_saveMergedAction = fileMenu->addAction(LucideIconFactory::icon(LucideIconFactory::IconType::Merged, QColor("#245ba7")),
                                              tr("Save Merged Result..."));
     m_saveMergedAction->setShortcut(QKeySequence::SaveAs);
@@ -540,6 +543,7 @@ void MainWindow::buildMenus()
 void MainWindow::connectSignals()
 {
     connect(m_openAction, &QAction::triggered, this, &MainWindow::openPycFile);
+    connect(m_importPyarmorAction, &QAction::triggered, this, &MainWindow::openPyarmorProject);
     connect(m_saveMergedAction, &QAction::triggered, this, &MainWindow::saveMergedResult);
     connect(m_settingsAction, &QAction::triggered, this, &MainWindow::openSettings);
     connect(m_retryAiAction, &QAction::triggered, this, &MainWindow::retryCurrentNodeWithAi);
@@ -629,6 +633,30 @@ void MainWindow::openPycFile()
     }
 
     openPycFileFromPath(filePath);
+}
+
+void MainWindow::openPyarmorProject()
+{
+    if (!m_context) {
+        return;
+    }
+
+    const QString directory = QFileDialog::getExistingDirectory(
+        this,
+        tr("Open Pyarmor Project"),
+        QString());
+    if (directory.isEmpty()) {
+        return;
+    }
+
+    if (!m_context->pyarmorImportService().importProject(directory)) {
+        QMessageBox::warning(this,
+                             tr("Pyarmor Import"),
+                             tr("Failed to import the selected Pyarmor project. Check the log panel for details."));
+        return;
+    }
+
+    m_context->session().appendLogLine(tr("[pyarmor] import completed"));
 }
 
 void MainWindow::saveMergedResult()

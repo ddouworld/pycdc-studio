@@ -74,6 +74,10 @@
     <message><source>Saved merged result to %1</source><translation>已将合并结果保存到 %1</translation></message>
     <message><source>[save] merged result written to %1</source><translation>[save] 已将合并结果写入 %1</translation></message>
     <message><source>Python Bytecode (*.pyc *.pyo);;All Files (*)</source><translation>Python 字节码 (*.pyc *.pyo);;所有文件 (*)</translation></message>
+    <message><source>Import Pyarmor Project...</source><translation>导入 Pyarmor 项目...</translation></message>
+    <message><source>Open Pyarmor Project</source><translation>打开 Pyarmor 项目</translation></message>
+    <message><source>Pyarmor Import</source><translation>Pyarmor 导入</translation></message>
+    <message><source>Failed to import the selected Pyarmor project. Check the log panel for details.</source><translation>导入所选 Pyarmor 项目失败。请查看日志面板了解详情。</translation></message>
     <message><source>Settings saved.</source><translation>设置已保存。</translation></message>
     <message><source>[settings] application settings updated</source><translation>[settings] 应用设置已更新</translation></message>
     <message><source>No file</source><translation>无文件</translation></message>
@@ -152,8 +156,28 @@ Native Error:
     <message><source>OK  %1 ms</source><translation>成功  %1 ms</translation></message>
     <message><source>FAIL  %1 ms</source><translation>失败  %1 ms</translation></message>
 </context>
-<context>
-    <name>OpenAiCompatibleClient</name>
+  <context>
+      <name>PyarmorImportService</name>
+      <message><source>The selected Pyarmor project directory is invalid.</source><translation>所选 Pyarmor 项目目录无效。</translation></message>
+      <message><source>Pyarmor oneshot tool is not available.</source><translation>Pyarmor oneshot 工具当前不可用。</translation></message>
+      <message><source>[pyarmor] missing Python or shot.py; configure PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT or keep the cloned tool in external/Pyarmor-Static-Unpack-1shot</source><translation>[pyarmor] 缺少 Python 或 shot.py；请配置 PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT，或将克隆的工具保留在 external/Pyarmor-Static-Unpack-1shot</translation></message>
+      <message><source>Failed to prepare a Pyarmor output directory.</source><translation>准备 Pyarmor 输出目录失败。</translation></message>
+      <message><source>Importing Pyarmor project...</source><translation>正在导入 Pyarmor 项目...</translation></message>
+      <message><source>[pyarmor] project = %1</source><translation>[pyarmor] 项目 = %1</translation></message>
+      <message><source>[pyarmor] python = %1</source><translation>[pyarmor] Python = %1</translation></message>
+      <message><source>[pyarmor] shot = %1</source><translation>[pyarmor] shot = %1</translation></message>
+      <message><source>[pyarmor] output = %1</source><translation>[pyarmor] 输出 = %1</translation></message>
+      <message><source>Pyarmor import failed.</source><translation>Pyarmor 导入失败。</translation></message>
+      <message><source>Pyarmor import produced no readable output.</source><translation>Pyarmor 导入没有产生可读取的输出。</translation></message>
+      <message><source>Failed to start Pyarmor oneshot from '%1'.</source><translation>无法从“%1”启动 Pyarmor oneshot。</translation></message>
+      <message><source>Pyarmor oneshot exited with code %1.</source><translation>Pyarmor oneshot 退出码为 %1。</translation></message>
+      <message><source>No .1shot.cdc.py output was generated for %1.</source><translation>%1 没有生成 .1shot.cdc.py 输出。</translation></message>
+      <message><source>[pyarmor] imported %1</source><translation>[pyarmor] 已导入 %1</translation></message>
+      <message><source>[pyarmor] no .1shot.das files found in %1</source><translation>[pyarmor] 在 %1 中未找到 .1shot.das 文件</translation></message>
+      <message><source>Imported %1 Pyarmor file(s) into the workspace.</source><translation>已将 %1 个 Pyarmor 文件导入工作区。</translation></message>
+  </context>
+  <context>
+      <name>OpenAiCompatibleClient</name>
     <message><source>AI provider is not configured. Set PYCDC_STUDIO_AI_BASE_URL, PYCDC_STUDIO_AI_API_KEY, and PYCDC_STUDIO_AI_MODEL.</source><translation>AI 服务尚未配置。请设置 PYCDC_STUDIO_AI_BASE_URL、PYCDC_STUDIO_AI_API_KEY 和 PYCDC_STUDIO_AI_MODEL。</translation></message>
     <message><source>AI request was canceled unexpectedly.</source><translation>AI 请求被意外取消。</translation></message>
     <message><source>AI request timed out.</source><translation>AI 请求超时。</translation></message>

@@ -39,6 +39,7 @@ AppContext::AppContext(QObject *parent)
     , m_pycdasRunner(this)
     , m_decompilerService(m_session, m_pycdcRunner, m_pycdasRunner, this)
     , m_fallbackService(m_session, m_promptBuilder, m_aiClient, this)
+    , m_pyarmorImportService(m_session, this)
 {
     m_pycdcRunner.setProgram(chooseProgramPath(QStringLiteral("PYCDC_STUDIO_PYCDC"),
                                                { QStringLiteral("pycdc.exe"),

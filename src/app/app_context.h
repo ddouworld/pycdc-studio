@@ -8,6 +8,7 @@
 #include "src/model/project_session.h"
 #include "src/service/decompiler_service.h"
 #include "src/service/fallback_service.h"
+#include "src/service/pyarmor_import_service.h"
 #include "src/service/pycdc_process_runner.h"
 #include "src/service/pycdas_process_runner.h"
 
@@ -21,6 +22,7 @@ public:
     ProjectSession &session() { return m_session; }
     DecompilerService &decompilerService() { return m_decompilerService; }
     FallbackService &fallbackService() { return m_fallbackService; }
+    PyarmorImportService &pyarmorImportService() { return m_pyarmorImportService; }
     PycdcProcessRunner &pycdcRunner() { return m_pycdcRunner; }
     PycdasProcessRunner &pycdasRunner() { return m_pycdasRunner; }
     OpenAiCompatibleClient &aiClient() { return m_aiClient; }
@@ -33,6 +35,7 @@ private:
     PycdasProcessRunner m_pycdasRunner;
     DecompilerService m_decompilerService;
     FallbackService m_fallbackService;
+    PyarmorImportService m_pyarmorImportService;
 };
 
 #endif // APP_CONTEXT_H

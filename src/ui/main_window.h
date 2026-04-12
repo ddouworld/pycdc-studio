@@ -30,6 +30,7 @@ private:
     void buildMenus();
     void connectSignals();
     void openPycFile();
+    void openPyarmorProject();
     void saveMergedResult();
     bool openPycFileFromPath(const QString &filePath);
     void openSettings();
@@ -47,6 +48,7 @@ private:
 
     AppContext *m_context = nullptr;
     QAction *m_openAction = nullptr;
+    QAction *m_importPyarmorAction = nullptr;
     QAction *m_saveMergedAction = nullptr;
     QAction *m_settingsAction = nullptr;
     QAction *m_retryAiAction = nullptr;

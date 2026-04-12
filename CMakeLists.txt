@@ -43,6 +43,8 @@ set(PROJECT_SOURCES
     src/service/decompiler_service.h
     src/service/fallback_service.cpp
     src/service/fallback_service.h
+    src/service/pyarmor_import_service.cpp
+    src/service/pyarmor_import_service.h
     src/ui/lucide_icon_factory.cpp
     src/ui/lucide_icon_factory.h
     src/ui/main_window.cpp
