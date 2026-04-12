@@ -11,6 +11,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QPlainTextEdit>
+#include <QSignalBlocker>
 #include <QSplitter>
 #include <QVBoxLayout>
 
@@ -72,10 +73,14 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     layout->addWidget(splitter, 1);
 
     // ── 语言 + 底部按钮 ───────────────────────────────────────────────────────
-    auto *bottomRow = new QHBoxLayout();
+    auto *footerCard = new QFrame(this);
+    footerCard->setObjectName(QStringLiteral("settingsFooterCard"));
+    auto *bottomRow = new QHBoxLayout(footerCard);
+    bottomRow->setContentsMargins(16, 14, 16, 14);
     bottomRow->setSpacing(14);
 
     auto *langLabel = new QLabel(tr("Language:"), this);
+    langLabel->setObjectName(QStringLiteral("fieldHint"));
     m_languageCombo = new QComboBox(this);
     m_languageCombo->addItem(tr("English"),  QStringLiteral("en"));
     m_languageCombo->addItem(tr("简体中文"), QStringLiteral("zh_CN"));
@@ -93,7 +98,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         cancelButton->setObjectName(QStringLiteral("dialogSecondaryButton"));
     }
     bottomRow->addWidget(buttonBox);
-    layout->addLayout(bottomRow);
+    layout->addWidget(footerCard);
 
     connect(buttonBox, &QDialogButtonBox::accepted, this, &SettingsDialog::saveAndAccept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -106,18 +111,32 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 void SettingsDialog::buildProviderListPanel(QSplitter *splitter)
 {
     auto *panel = new QFrame(splitter);
-    panel->setObjectName(QStringLiteral("formCard"));
+    panel->setObjectName(QStringLiteral("settingsListCard"));
     auto *vl = new QVBoxLayout(panel);
-    vl->setContentsMargins(12, 12, 12, 12);
-    vl->setSpacing(8);
+    vl->setContentsMargins(14, 14, 14, 14);
+    vl->setSpacing(10);
 
+    auto *titleRow = new QHBoxLayout();
+    titleRow->setSpacing(8);
     auto *listTitle = new QLabel(tr("Providers"), panel);
-    listTitle->setObjectName(QStringLiteral("dialogTitle"));
-    vl->addWidget(listTitle);
+    listTitle->setObjectName(QStringLiteral("settingsSectionTitle"));
+    m_providerCountBadge = new QLabel(panel);
+    m_providerCountBadge->setObjectName(QStringLiteral("settingsCountBadge"));
+    m_providerCountBadge->setAlignment(Qt::AlignCenter);
+    titleRow->addWidget(listTitle);
+    titleRow->addStretch();
+    titleRow->addWidget(m_providerCountBadge);
+    vl->addLayout(titleRow);
+
+    auto *listCaption = new QLabel(tr("Switch between providers, keep backups for different vendors, and reorder your preferred defaults."), panel);
+    listCaption->setObjectName(QStringLiteral("settingsSectionCaption"));
+    listCaption->setWordWrap(true);
+    vl->addWidget(listCaption);
 
     m_providerList = new QListWidget(panel);
-    m_providerList->setObjectName(QStringLiteral("codeTree"));
+    m_providerList->setObjectName(QStringLiteral("providerList"));
     m_providerList->setAlternatingRowColors(true);
+    m_providerList->setSpacing(6);
     vl->addWidget(m_providerList, 1);
 
     // 操作按钮
@@ -125,7 +144,7 @@ void SettingsDialog::buildProviderListPanel(QSplitter *splitter)
     btnRow->setSpacing(4);
 
     m_addBtn = new QPushButton(
-        LucideIconFactory::icon(LucideIconFactory::IconType::StatusOk, QColor("#198754"), 15),
+        LucideIconFactory::icon(LucideIconFactory::IconType::Plus, QColor("#198754"), 15),
         tr("Add"), panel);
     m_addBtn->setObjectName(QStringLiteral("dialogSecondaryButton"));
     m_addBtn->setCursor(Qt::PointingHandCursor);
@@ -134,27 +153,27 @@ void SettingsDialog::buildProviderListPanel(QSplitter *splitter)
     m_removeBtn = new QPushButton(
         LucideIconFactory::icon(LucideIconFactory::IconType::Exit, QColor("#c25027"), 15),
         tr("Remove"), panel);
-    m_removeBtn->setObjectName(QStringLiteral("dialogSecondaryButton"));
+    m_removeBtn->setObjectName(QStringLiteral("dangerButton"));
     m_removeBtn->setCursor(Qt::PointingHandCursor);
     m_removeBtn->setEnabled(false);
     m_removeBtn->setToolTip(tr("Remove selected provider"));
 
     m_upBtn = new QPushButton(
-        LucideIconFactory::icon(LucideIconFactory::IconType::StatusWarning, QColor("#9a6700"), 15),
+        LucideIconFactory::icon(LucideIconFactory::IconType::ChevronUp, QColor("#9a6700"), 15),
         QString(), panel);
-    m_upBtn->setObjectName(QStringLiteral("dialogSecondaryButton"));
+    m_upBtn->setObjectName(QStringLiteral("dialogToolButton"));
     m_upBtn->setCursor(Qt::PointingHandCursor);
     m_upBtn->setEnabled(false);
-    m_upBtn->setFixedWidth(32);
+    m_upBtn->setFixedWidth(38);
     m_upBtn->setToolTip(tr("Move up"));
 
     m_downBtn = new QPushButton(
-        LucideIconFactory::icon(LucideIconFactory::IconType::StatusWarning, QColor("#9a6700"), 15),
+        LucideIconFactory::icon(LucideIconFactory::IconType::ChevronDown, QColor("#9a6700"), 15),
         QString(), panel);
-    m_downBtn->setObjectName(QStringLiteral("dialogSecondaryButton"));
+    m_downBtn->setObjectName(QStringLiteral("dialogToolButton"));
     m_downBtn->setCursor(Qt::PointingHandCursor);
     m_downBtn->setEnabled(false);
-    m_downBtn->setFixedWidth(32);
+    m_downBtn->setFixedWidth(38);
     m_downBtn->setToolTip(tr("Move down"));
 
     btnRow->addWidget(m_addBtn);
@@ -174,32 +193,54 @@ void SettingsDialog::buildProviderListPanel(QSplitter *splitter)
 void SettingsDialog::buildProviderFormPanel(QSplitter *splitter)
 {
     auto *panel = new QFrame(splitter);
-    panel->setObjectName(QStringLiteral("formCard"));
+    panel->setObjectName(QStringLiteral("settingsFormCard"));
     auto *vl = new QVBoxLayout(panel);
-    vl->setContentsMargins(12, 12, 12, 12);
-    vl->setSpacing(8);
+    vl->setContentsMargins(16, 16, 16, 16);
+    vl->setSpacing(12);
 
-    m_formGroup = new QGroupBox(tr("Provider Configuration"), panel);
+    auto *formHeaderRow = new QHBoxLayout();
+    formHeaderRow->setSpacing(10);
+    auto *formTitle = new QLabel(tr("Provider Configuration"), panel);
+    formTitle->setObjectName(QStringLiteral("settingsSectionTitle"));
+    m_providerStateBadge = new QLabel(panel);
+    m_providerStateBadge->setObjectName(QStringLiteral("providerStateBadge"));
+    m_providerStateBadge->setAlignment(Qt::AlignCenter);
+    formHeaderRow->addWidget(formTitle);
+    formHeaderRow->addStretch();
+    formHeaderRow->addWidget(m_providerStateBadge);
+    vl->addLayout(formHeaderRow);
+
+    auto *formCaption = new QLabel(tr("Edit the endpoint, credentials, model preference and system prompt for the selected provider."), panel);
+    formCaption->setObjectName(QStringLiteral("settingsSectionCaption"));
+    formCaption->setWordWrap(true);
+    vl->addWidget(formCaption);
+
+    m_formGroup = new QGroupBox(panel);
+    m_formGroup->setObjectName(QStringLiteral("providerFormGroup"));
     m_formGroup->setEnabled(false);
     auto *formLayout = new QFormLayout(m_formGroup);
     formLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     formLayout->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     formLayout->setHorizontalSpacing(14);
-    formLayout->setVerticalSpacing(10);
+    formLayout->setVerticalSpacing(12);
 
     m_nameEdit = new QLineEdit(m_formGroup);
     m_nameEdit->setPlaceholderText(tr("e.g. OpenAI, DeepSeek, Local Ollama"));
+    m_nameEdit->setClearButtonEnabled(true);
 
     m_baseUrlEdit = new QLineEdit(m_formGroup);
     m_baseUrlEdit->setPlaceholderText(tr("https://api.example.com/v1"));
+    m_baseUrlEdit->setClearButtonEnabled(true);
 
     m_apiKeyEdit = new QLineEdit(m_formGroup);
     m_apiKeyEdit->setEchoMode(QLineEdit::Password);
     m_apiKeyEdit->setPlaceholderText(tr("sk-..."));
+    m_apiKeyEdit->setClearButtonEnabled(true);
 
     // 模型字段：输入框占满整行，Select Models 按钮在其下方
     m_modelEdit = new QLineEdit(m_formGroup);
     m_modelEdit->setPlaceholderText(tr("gpt-4o-mini / qwen-plus / ..."));
+    m_modelEdit->setClearButtonEnabled(true);
 
     // Select Models 按钮单独一行，左对齐
     auto *modelBtnRow = new QHBoxLayout();
@@ -261,7 +302,7 @@ void SettingsDialog::loadValues()
     // 选中 active provider
     const int activeIdx = AiProviderConfig::loadActiveIndex();
     const int safeIdx   = (activeIdx >= 0 && activeIdx < m_providers.size()) ? activeIdx : 0;
-    m_providerList->setCurrentRow(safeIdx);
+    setCurrentProviderRow(safeIdx);
 }
 
 void SettingsDialog::flushCurrentProviderToCache()
@@ -282,6 +323,11 @@ void SettingsDialog::applyProviderToForm(int index)
 {
     if (index < 0 || index >= m_providers.size()) {
         m_formGroup->setEnabled(false);
+        m_nameEdit->clear();
+        m_baseUrlEdit->clear();
+        m_apiKeyEdit->clear();
+        m_modelEdit->clear();
+        m_systemPromptEdit->clear();
         return;
     }
     m_formGroup->setEnabled(true);
@@ -291,6 +337,47 @@ void SettingsDialog::applyProviderToForm(int index)
     m_apiKeyEdit->setText(cfg.apiKey);
     m_modelEdit->setText(cfg.model);
     m_systemPromptEdit->setPlainText(cfg.systemPrompt);
+}
+
+void SettingsDialog::setCurrentProviderRow(int row)
+{
+    {
+        const QSignalBlocker blocker(m_providerList);
+        m_providerList->setCurrentRow(row);
+    }
+    m_currentRow = row;
+    applyProviderToForm(row);
+    updateProviderActionStates(row);
+    refreshProviderMeta(row);
+}
+
+void SettingsDialog::updateProviderActionStates(int row)
+{
+    const bool valid = (row >= 0 && row < m_providers.size());
+    m_removeBtn->setEnabled(valid);
+    m_upBtn->setEnabled(valid && row > 0);
+    m_downBtn->setEnabled(valid && row < m_providers.size() - 1);
+}
+
+void SettingsDialog::refreshProviderMeta(int row)
+{
+    if (m_providerCountBadge) {
+        m_providerCountBadge->setText(QString::number(m_providers.size()));
+    }
+
+    if (!m_providerStateBadge) {
+        return;
+    }
+
+    if (row < 0 || row >= m_providers.size()) {
+        m_providerStateBadge->clear();
+        m_providerStateBadge->setVisible(false);
+        return;
+    }
+
+    const QString name = m_providers.at(row).name.trimmed();
+    m_providerStateBadge->setText(name.isEmpty() ? tr("(unnamed)") : name);
+    m_providerStateBadge->setVisible(true);
 }
 
 // ── slots ─────────────────────────────────────────────────────────────────────
@@ -307,7 +394,7 @@ void SettingsDialog::addProvider()
         "Return only Python source code.");
     m_providers.append(p);
     m_providerList->addItem(p.name);
-    m_providerList->setCurrentRow(m_providers.size() - 1);
+    setCurrentProviderRow(m_providers.size() - 1);
 }
 
 void SettingsDialog::removeProvider()
@@ -317,13 +404,15 @@ void SettingsDialog::removeProvider()
         return;
     }
     m_providers.removeAt(row);
-    delete m_providerList->takeItem(row);
-    m_currentRow = -1;
+    {
+        const QSignalBlocker blocker(m_providerList);
+        delete m_providerList->takeItem(row);
+    }
     if (m_providers.isEmpty()) {
-        m_formGroup->setEnabled(false);
+        setCurrentProviderRow(-1);
     } else {
         const int newRow = qMin(row, m_providers.size() - 1);
-        m_providerList->setCurrentRow(newRow);
+        setCurrentProviderRow(newRow);
     }
 }
 
@@ -335,10 +424,12 @@ void SettingsDialog::moveProviderUp()
     }
     flushCurrentProviderToCache();
     m_providers.swapItemsAt(row, row - 1);
-    auto *item = m_providerList->takeItem(row);
-    m_providerList->insertItem(row - 1, item);
-    m_currentRow = -1;
-    m_providerList->setCurrentRow(row - 1);
+    {
+        const QSignalBlocker blocker(m_providerList);
+        auto *item = m_providerList->takeItem(row);
+        m_providerList->insertItem(row - 1, item);
+    }
+    setCurrentProviderRow(row - 1);
 }
 
 void SettingsDialog::moveProviderDown()
@@ -349,10 +440,12 @@ void SettingsDialog::moveProviderDown()
     }
     flushCurrentProviderToCache();
     m_providers.swapItemsAt(row, row + 1);
-    auto *item = m_providerList->takeItem(row);
-    m_providerList->insertItem(row + 1, item);
-    m_currentRow = -1;
-    m_providerList->setCurrentRow(row + 1);
+    {
+        const QSignalBlocker blocker(m_providerList);
+        auto *item = m_providerList->takeItem(row);
+        m_providerList->insertItem(row + 1, item);
+    }
+    setCurrentProviderRow(row + 1);
 }
 
 void SettingsDialog::onProviderSelected(int row)
@@ -360,11 +453,8 @@ void SettingsDialog::onProviderSelected(int row)
     flushCurrentProviderToCache();
     m_currentRow = row;
     applyProviderToForm(row);
-
-    const bool valid = (row >= 0 && row < m_providers.size());
-    m_removeBtn->setEnabled(valid);
-    m_upBtn->setEnabled(valid && row > 0);
-    m_downBtn->setEnabled(valid && row < m_providers.size() - 1);
+    updateProviderActionStates(row);
+    refreshProviderMeta(row);
 }
 
 void SettingsDialog::onProviderNameEdited(const QString &text)
@@ -375,6 +465,10 @@ void SettingsDialog::onProviderNameEdited(const QString &text)
     }
     const QString display = text.trimmed().isEmpty() ? tr("(unnamed)") : text.trimmed();
     m_providerList->item(row)->setText(display);
+    if (row == m_currentRow && m_providerStateBadge) {
+        m_providerStateBadge->setText(display);
+        m_providerStateBadge->setVisible(true);
+    }
 }
 
 void SettingsDialog::openModelPicker()

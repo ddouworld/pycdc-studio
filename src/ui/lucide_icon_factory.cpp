@@ -180,6 +180,24 @@ void LucideIconFactory::drawIcon(QPainter &painter,
         drawSparkle(painter, QPointF(rect.left() + rect.width() * 0.38, rect.top() + rect.height() * 0.42), rect.width() * 0.16);
         drawSparkle(painter, QPointF(rect.left() + rect.width() * 0.68, rect.top() + rect.height() * 0.66), rect.width() * 0.10);
         break;
+    case IconType::Plus:
+        painter.drawLine(QPointF(rect.center().x(), rect.top() + rect.height() * 0.24),
+                         QPointF(rect.center().x(), rect.bottom() - rect.height() * 0.24));
+        painter.drawLine(QPointF(rect.left() + rect.width() * 0.24, rect.center().y()),
+                         QPointF(rect.right() - rect.width() * 0.24, rect.center().y()));
+        break;
+    case IconType::ChevronUp:
+        painter.drawLine(QPointF(rect.left() + rect.width() * 0.28, rect.bottom() - rect.height() * 0.36),
+                         QPointF(rect.center().x(), rect.top() + rect.height() * 0.30));
+        painter.drawLine(QPointF(rect.center().x(), rect.top() + rect.height() * 0.30),
+                         QPointF(rect.right() - rect.width() * 0.28, rect.bottom() - rect.height() * 0.36));
+        break;
+    case IconType::ChevronDown:
+        painter.drawLine(QPointF(rect.left() + rect.width() * 0.28, rect.top() + rect.height() * 0.34),
+                         QPointF(rect.center().x(), rect.bottom() - rect.height() * 0.28));
+        painter.drawLine(QPointF(rect.center().x(), rect.bottom() - rect.height() * 0.28),
+                         QPointF(rect.right() - rect.width() * 0.28, rect.top() + rect.height() * 0.34));
+        break;
     case IconType::Exit:
         painter.drawLine(QPointF(rect.left() + rect.width() * 0.25, rect.top() + rect.height() * 0.25),
                          QPointF(rect.right() - rect.width() * 0.25, rect.bottom() - rect.height() * 0.25));

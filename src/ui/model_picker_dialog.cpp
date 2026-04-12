@@ -166,11 +166,28 @@ ModelPickerDialog::ModelPickerDialog(const QString &baseUrl,
     auto *btnBox = new QDialogButtonBox(this);
     m_selectButton = btnBox->addButton(tr("Use Selected"), QDialogButtonBox::AcceptRole);
     m_selectButton->setObjectName(QStringLiteral("dialogPrimaryButton"));
+    m_selectButton->setCursor(Qt::PointingHandCursor);
+    m_selectButton->setMinimumHeight(40);
     m_selectButton->setEnabled(false);
     auto *cancelButton = btnBox->addButton(QDialogButtonBox::Cancel);
     cancelButton->setObjectName(QStringLiteral("dialogSecondaryButton"));
     cancelButton->setText(tr("Cancel"));
-    mainLayout->addWidget(btnBox);
+    cancelButton->setCursor(Qt::PointingHandCursor);
+    cancelButton->setMinimumHeight(40);
+
+    auto *footerCard = new QFrame(this);
+    footerCard->setObjectName(QStringLiteral("dialogFooterCard"));
+    auto *footerLayout = new QHBoxLayout(footerCard);
+    footerLayout->setContentsMargins(16, 14, 16, 14);
+    footerLayout->setSpacing(12);
+
+    auto *footerHint = new QLabel(tr("Select a highlighted model to apply it to the current provider."), footerCard);
+    footerHint->setObjectName(QStringLiteral("fieldHint"));
+    footerHint->setWordWrap(true);
+
+    footerLayout->addWidget(footerHint, 1);
+    footerLayout->addWidget(btnBox, 0, Qt::AlignRight);
+    mainLayout->addWidget(footerCard);
 
     // ── 初始填充 ──────────────────────────────────────────────────────────────
     for (const QString &id : existingModels) {

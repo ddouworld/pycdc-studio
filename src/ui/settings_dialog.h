@@ -48,15 +48,20 @@ private:
     void loadValues();
     void flushCurrentProviderToCache();
     void applyProviderToForm(int index);
+    void setCurrentProviderRow(int row);
+    void updateProviderActionStates(int row);
+    void refreshProviderMeta(int row);
 
     // Provider list panel
     QListWidget   *m_providerList   = nullptr;
+    QLabel        *m_providerCountBadge = nullptr;
     QPushButton   *m_addBtn         = nullptr;
     QPushButton   *m_removeBtn      = nullptr;
     QPushButton   *m_upBtn          = nullptr;
     QPushButton   *m_downBtn        = nullptr;
 
     // Provider form fields
+    QLabel        *m_providerStateBadge = nullptr;
     QGroupBox     *m_formGroup      = nullptr;
     QLineEdit     *m_nameEdit       = nullptr;
     QLineEdit     *m_baseUrlEdit    = nullptr;

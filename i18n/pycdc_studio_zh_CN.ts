@@ -126,6 +126,7 @@ Native Error:
     <message><source>Remove</source><translation>移除</translation></message>
     <message><source>No test run yet.</source><translation>尚未进行测试。</translation></message>
     <message><source>Use Selected</source><translation>使用选中模型</translation></message>
+    <message><source>Select a highlighted model to apply it to the current provider.</source><translation>选择高亮模型后，可将其应用到当前服务商配置。</translation></message>
     <message><source>Cancel</source><translation>取消</translation></message>
     <message><source>Base URL or API Key is missing; cannot fetch models.</source><translation>Base URL 或 API Key 未填写，无法拉取模型列表。</translation></message>
     <message><source>Fetching models...</source><translation>正在拉取模型列表...</translation></message>
@@ -205,6 +206,8 @@ Native Error:
     <message><source>Open model manager to add, fetch, test and select models</source><translation>打开模型管理器，可添加、拉取、测试并选择模型</translation></message>
     <message><source>System Prompt</source><translation>System Prompt</translation></message>
     <message><source>Optional custom system prompt</source><translation>可选的自定义 system prompt</translation></message>
+    <message><source>Switch between providers, keep backups for different vendors, and reorder your preferred defaults.</source><translation>可在不同服务商配置之间切换，保留多套备用配置，并调整你的默认优先顺序。</translation></message>
+    <message><source>Edit the endpoint, credentials, model preference and system prompt for the selected provider.</source><translation>编辑当前选中服务商的接口地址、凭证、模型偏好和 system prompt。</translation></message>
     <message><source>Language:</source><translation>语言：</translation></message>
     <message><source>English</source><translation>English</translation></message>
     <message><source>简体中文</source><translation>简体中文</translation></message>
