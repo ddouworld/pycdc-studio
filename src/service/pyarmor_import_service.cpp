@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QStandardPaths>
 #include <QUuid>
 
 #include "src/service/pycdas_tree_parser.h"
@@ -115,7 +116,7 @@ bool PyarmorImportService::importProject(const QString &projectDirectory)
     const QString shotScript = resolveShotScript();
     if (pythonProgram.isEmpty() || shotScript.isEmpty()) {
         m_session.setStatusMessage(tr("Pyarmor oneshot tool is not available."));
-        m_session.appendLogLine(tr("[pyarmor] missing Python or shot.py; configure PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT or keep the cloned tool in external/Pyarmor-Static-Unpack-1shot"));
+        m_session.appendLogLine(tr("[pyarmor] missing Python or shot.py; bundle pyarmor-oneshot with the app, or configure PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT"));
         return false;
     }
 
@@ -157,37 +158,70 @@ QString PyarmorImportService::resolvePythonProgram() const
 {
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString envValue = env.value(QStringLiteral("PYCDC_STUDIO_PYARMOR_PYTHON")).trimmed();
-    return envValue.isEmpty() ? QStringLiteral("python") : envValue;
+    if (!envValue.isEmpty()) {
+        return envValue;
+    }
+
+#ifdef Q_OS_WIN
+    const QStringList candidates{ QStringLiteral("python.exe"), QStringLiteral("python") };
+#else
+    const QStringList candidates{ QStringLiteral("python3"), QStringLiteral("python") };
+#endif
+    for (const QString &candidate : candidates) {
+        const QString executable = QStandardPaths::findExecutable(candidate);
+        if (!executable.isEmpty()) {
+            return executable;
+        }
+    }
+
+#ifdef Q_OS_WIN
+    return QStringLiteral("python");
+#else
+    return QStringLiteral("python3");
+#endif
 }
 
 QString PyarmorImportService::resolveShotScript() const
 {
+    QStringList candidates;
+    for (const QString &root : candidateRoots()) {
+        candidates.append(QDir(root).filePath(QStringLiteral("pyarmor-oneshot/shot.py")));
+        candidates.append(QDir(root).filePath(QStringLiteral("oneshot/shot.py")));
+        candidates.append(QDir(root).filePath(QStringLiteral("external/Pyarmor-Static-Unpack-1shot/oneshot/shot.py")));
+    }
+    const QString bundledPath = findExistingPath(candidates);
+    if (!bundledPath.isEmpty()) {
+        return bundledPath;
+    }
+
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString envValue = env.value(QStringLiteral("PYCDC_STUDIO_PYARMOR_SHOT")).trimmed();
     if (!envValue.isEmpty() && QFileInfo::exists(envValue)) {
         return QFileInfo(envValue).absoluteFilePath();
     }
 
-    QStringList candidates;
-    for (const QString &root : candidateRoots()) {
-        candidates.append(QDir(root).filePath(QStringLiteral("external/Pyarmor-Static-Unpack-1shot/oneshot/shot.py")));
-    }
-    return findExistingPath(candidates);
+    return QString();
 }
 
 QString PyarmorImportService::resolveExtraPythonPath() const
 {
+    QStringList candidates;
+    for (const QString &root : candidateRoots()) {
+        candidates.append(QDir(root).filePath(QStringLiteral(".oneshot-packages")));
+        candidates.append(QDir(root).filePath(QStringLiteral("pyarmor-oneshot/python-packages")));
+    }
+    const QString bundledPath = findExistingPath(candidates);
+    if (!bundledPath.isEmpty()) {
+        return bundledPath;
+    }
+
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString envValue = env.value(QStringLiteral("PYCDC_STUDIO_PYARMOR_PYTHONPATH")).trimmed();
     if (!envValue.isEmpty() && QFileInfo::exists(envValue)) {
         return QFileInfo(envValue).absoluteFilePath();
     }
 
-    QStringList candidates;
-    for (const QString &root : candidateRoots()) {
-        candidates.append(QDir(root).filePath(QStringLiteral(".oneshot-packages")));
-    }
-    return findExistingPath(candidates);
+    return QString();
 }
 
 QString PyarmorImportService::createOutputDirectory(const QString &projectDirectory) const

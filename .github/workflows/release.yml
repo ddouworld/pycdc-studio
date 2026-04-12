@@ -17,6 +17,8 @@ concurrency:
 
 env:
   PYCDC_REPO: https://github.com/zrax/pycdc.git
+  PYARMOR_ONESHOT_REPO: https://github.com/Lil-House/Pyarmor-Static-Unpack-1shot.git
+  PYCRYPTODOME_SPEC: pycryptodome==3.23.0
 
 jobs:
   prepare:
@@ -98,6 +100,15 @@ jobs:
           pycdc_commit="$(git -C external/pycdc rev-parse HEAD)"
           echo "pycdc_commit=${pycdc_commit}" >> "$GITHUB_OUTPUT"
 
+      - name: Clone Pyarmor oneshot upstream
+        id: pyarmor_checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "$PYARMOR_ONESHOT_REPO" external/Pyarmor-Static-Unpack-1shot
+          pyarmor_commit="$(git -C external/Pyarmor-Static-Unpack-1shot rev-parse HEAD)"
+          echo "pyarmor_commit=${pyarmor_commit}" >> "$GITHUB_OUTPUT"
+
       - name: Configure pycdc-studio
         shell: bash
         run: |
@@ -123,6 +134,19 @@ jobs:
           set -euo pipefail
           cmake --build build/pycdc --target pycdc pycdas --parallel
 
+      - name: Configure Pyarmor oneshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S external/Pyarmor-Static-Unpack-1shot/pycdc -B build/pyarmor-oneshot -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Pyarmor oneshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build/pyarmor-oneshot --parallel
+          cmake --install build/pyarmor-oneshot
+
       - name: Assemble release package
         id: package
         shell: bash
@@ -137,14 +161,21 @@ jobs:
           platforms_dir="${plugins_dir}/platforms"
           xcb_gl_dir="${plugins_dir}/xcbglintegrations"
           pycdc_commit="${{ steps.pycdc_checkout.outputs.pycdc_commit }}"
+          pyarmor_commit="${{ steps.pyarmor_checkout.outputs.pyarmor_commit }}"
+          pyarmor_dir="${package_root}/pyarmor-oneshot"
+          pyarmor_pkg_dir="${pyarmor_dir}/python-packages"
 
           rm -rf "$package_root"
-          mkdir -p "$bin_dir" "$lib_dir" "$platforms_dir" "$xcb_gl_dir"
+          mkdir -p "$bin_dir" "$lib_dir" "$platforms_dir" "$xcb_gl_dir" "$pyarmor_dir" "$pyarmor_pkg_dir"
 
           cp -a build/package/. "$package_root/"
           cp -a build/pycdc/pycdc "$bin_dir/"
           cp -a build/pycdc/pycdas "$bin_dir/"
           chmod +x "$bin_dir/pycdc-studio" "$bin_dir/pycdc" "$bin_dir/pycdas"
+          cp -a external/Pyarmor-Static-Unpack-1shot/oneshot/. "$pyarmor_dir/"
+          python -m pip install --upgrade pip
+          python -m pip install --target "$pyarmor_pkg_dir" "$PYCRYPTODOME_SPEC"
+          find "$pyarmor_pkg_dir" -type d -name '__pycache__' -prune -exec rm -rf {} +
 
           for pattern in \
             libQt6Core.so* \
@@ -177,6 +208,7 @@ jobs:
           chmod +x "${package_root}/pycdc-studio.sh"
 
           cp -a external/pycdc/LICENSE "${package_root}/LICENSE.pycdc.txt"
+          cp -a external/Pyarmor-Static-Unpack-1shot/LICENSE "${package_root}/LICENSE.pyarmor-oneshot.txt"
           cp -a README.md "${package_root}/README.md"
           if [[ -f README_CN.md ]]; then
             cp -a README_CN.md "${package_root}/README_CN.md"
@@ -187,6 +219,13 @@ jobs:
           Repository: ${PYCDC_REPO}
           Commit: ${pycdc_commit}
           Bundled binaries: pycdc, pycdas
+          Source retrieval: clone the upstream repository at the commit above
+
+          Pyarmor oneshot bundled source information
+          Repository: ${PYARMOR_ONESHOT_REPO}
+          Commit: ${pyarmor_commit}
+          Bundled files: pyarmor-oneshot/shot.py, pyarmor-oneshot/pyarmor-1shot
+          Bundled Python package: ${PYCRYPTODOME_SPEC}
           Source retrieval: clone the upstream repository at the commit above
           EOF
 
@@ -214,6 +253,11 @@ jobs:
       - name: Check out pycdc-studio
         uses: actions/checkout@v6
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -236,6 +280,14 @@ jobs:
           $pycdcCommit = (git -C external\pycdc rev-parse HEAD).Trim()
           "pycdc_commit=$pycdcCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
+      - name: Clone Pyarmor oneshot upstream
+        id: pyarmor_checkout
+        shell: pwsh
+        run: |
+          git clone --depth 1 $env:PYARMOR_ONESHOT_REPO external\Pyarmor-Static-Unpack-1shot
+          $pyarmorCommit = (git -C external\Pyarmor-Static-Unpack-1shot rev-parse HEAD).Trim()
+          "pyarmor_commit=$pyarmorCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
       - name: Configure pycdc-studio
         shell: pwsh
         run: |
@@ -257,6 +309,17 @@ jobs:
         run: |
           cmake --build build\pycdc --target pycdc pycdas --parallel
 
+      - name: Configure Pyarmor oneshot
+        shell: pwsh
+        run: |
+          cmake -S external\Pyarmor-Static-Unpack-1shot\pycdc -B build\pyarmor-oneshot -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Pyarmor oneshot
+        shell: pwsh
+        run: |
+          cmake --build build\pyarmor-oneshot --parallel
+          cmake --install build\pyarmor-oneshot --config Release
+
       - name: Assemble release package
         id: package
         shell: pwsh
@@ -266,16 +329,24 @@ jobs:
           $packageRoot = Join-Path $env:RUNNER_TEMP $packageName
           $binDir = Join-Path $packageRoot "bin"
           $pycdcCommit = '${{ steps.pycdc_checkout.outputs.pycdc_commit }}'
+          $pyarmorCommit = '${{ steps.pyarmor_checkout.outputs.pyarmor_commit }}'
+          $pyarmorDir = Join-Path $packageRoot "pyarmor-oneshot"
+          $pyarmorPkgDir = Join-Path $pyarmorDir "python-packages"
 
           if (Test-Path $packageRoot) {
             Remove-Item -Recurse -Force $packageRoot
           }
 
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $pyarmorPkgDir | Out-Null
           Copy-Item -Recurse -Force build\package\* $packageRoot
           Copy-Item -Force build\pycdc\pycdc.exe $binDir
           Copy-Item -Force build\pycdc\pycdas.exe $binDir
+          Copy-Item -Recurse -Force external\Pyarmor-Static-Unpack-1shot\oneshot\* $pyarmorDir
+          python -m pip install --upgrade pip
+          python -m pip install --target $pyarmorPkgDir $env:PYCRYPTODOME_SPEC
           Copy-Item -Force external\pycdc\LICENSE (Join-Path $packageRoot "LICENSE.pycdc.txt")
+          Copy-Item -Force external\Pyarmor-Static-Unpack-1shot\LICENSE (Join-Path $packageRoot "LICENSE.pyarmor-oneshot.txt")
           Copy-Item -Force README.md (Join-Path $packageRoot "README.md")
           if (Test-Path README_CN.md) {
             Copy-Item -Force README_CN.md (Join-Path $packageRoot "README_CN.md")
@@ -286,6 +357,13 @@ jobs:
             "Repository: $env:PYCDC_REPO",
             "Commit: $pycdcCommit",
             "Bundled binaries: pycdc.exe, pycdas.exe",
+            "Source retrieval: clone the upstream repository at the commit above",
+            "",
+            "Pyarmor oneshot bundled source information",
+            "Repository: $env:PYARMOR_ONESHOT_REPO",
+            "Commit: $pyarmorCommit",
+            "Bundled files: pyarmor-oneshot/shot.py, pyarmor-oneshot/pyarmor-1shot.exe",
+            "Bundled Python package: $env:PYCRYPTODOME_SPEC",
             "Source retrieval: clone the upstream repository at the commit above"
           ) | Set-Content -Path (Join-Path $packageRoot "THIRD_PARTY_NOTICES.txt") -Encoding utf8
 

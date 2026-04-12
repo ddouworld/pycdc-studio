@@ -160,7 +160,7 @@ Native Error:
       <name>PyarmorImportService</name>
       <message><source>The selected Pyarmor project directory is invalid.</source><translation>所选 Pyarmor 项目目录无效。</translation></message>
       <message><source>Pyarmor oneshot tool is not available.</source><translation>Pyarmor oneshot 工具当前不可用。</translation></message>
-      <message><source>[pyarmor] missing Python or shot.py; configure PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT or keep the cloned tool in external/Pyarmor-Static-Unpack-1shot</source><translation>[pyarmor] 缺少 Python 或 shot.py；请配置 PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT，或将克隆的工具保留在 external/Pyarmor-Static-Unpack-1shot</translation></message>
+      <message><source>[pyarmor] missing Python or shot.py; bundle pyarmor-oneshot with the app, or configure PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT</source><translation>[pyarmor] 缺少 Python 或 shot.py；请将 pyarmor-oneshot 随应用一起打包，或配置 PYCDC_STUDIO_PYARMOR_PYTHON / PYCDC_STUDIO_PYARMOR_SHOT</translation></message>
       <message><source>Failed to prepare a Pyarmor output directory.</source><translation>准备 Pyarmor 输出目录失败。</translation></message>
       <message><source>Importing Pyarmor project...</source><translation>正在导入 Pyarmor 项目...</translation></message>
       <message><source>[pyarmor] project = %1</source><translation>[pyarmor] 项目 = %1</translation></message>

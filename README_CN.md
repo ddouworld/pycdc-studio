@@ -2,7 +2,7 @@
 
 [English README](./README.md)
 
-一个基于 Qt Widgets 的桌面图形界面，用来配合 `pycdc` / `pycdas` 浏览 Python 字节码、查看原生反编译结果，并在遇到不支持的 code object 时使用 AI 做兜底重建。
+一个基于 Qt Widgets 的桌面图形界面，用来配合 `pycdc` / `pycdas` 浏览 Python 字节码、查看原生反编译结果、导入 Pyarmor oneshot 输出，并在遇到不支持的 code object 时使用 AI 做兜底重建。
 
 当前支持 Windows 和 Linux 桌面环境。
 
@@ -24,6 +24,7 @@
 
 - 直接打开 `.pyc` / `.pyo`
 - 支持把文件夹拖进窗口，递归扫描其中的字节码文件
+- 支持通过 oneshot 流程导入 Pyarmor 混淆项目
 - 多文件会一起显示在左侧树里
 - 查看模块、类、函数、lambda、推导式等 code object 树
 - 对比三种结果：
@@ -74,6 +75,65 @@
 - `PYCDC_STUDIO_PYCDC`
 - `PYCDC_STUDIO_PYCDAS`
 
+## Pyarmor 导入
+
+当前可以通过
+[`Lil-House/Pyarmor-Static-Unpack-1shot`](https://github.com/Lil-House/Pyarmor-Static-Unpack-1shot)
+导入 Pyarmor 保护项目。
+
+集成流程是：
+
+1. 对你选中的 Pyarmor 项目目录运行 `oneshot/shot.py`
+2. 由 `pyarmor-1shot` 生成 `.1shot.das` 和 `.1shot.cdc.py`
+3. 再把这些生成文件加载回当前工作区
+
+release 打包流程会自动构建并内置 Pyarmor oneshot 工具链，以及所需的
+Python 依赖。
+
+对于本地开发，当前代码会优先查找安装包里自带的文件，同时也支持这个本地 clone 路径：
+
+- `external/Pyarmor-Static-Unpack-1shot/oneshot/shot.py`
+
+并要求 `shot.py` 所在目录里存在：
+
+- `pyarmor-1shot`
+- 或 `pyarmor-1shot.exe`
+
+另外还需要一个能运行 `shot.py` 的 Python 环境，并安装 `pycryptodome`。
+
+如果你的目录布局不是这样，也可以用这些环境变量覆盖：
+
+- `PYCDC_STUDIO_PYARMOR_PYTHON`
+- `PYCDC_STUDIO_PYARMOR_SHOT`
+- `PYCDC_STUDIO_PYARMOR_PYTHONPATH`
+- `PYCDC_STUDIO_PYARMOR_OUTPUT_ROOT`
+
+### 为本地开发准备上游工具
+
+示例：
+
+```bash
+git clone https://github.com/Lil-House/Pyarmor-Static-Unpack-1shot external/Pyarmor-Static-Unpack-1shot
+cmake -S external/Pyarmor-Static-Unpack-1shot/pycdc -B external/Pyarmor-Static-Unpack-1shot/build
+cmake --build external/Pyarmor-Static-Unpack-1shot/build --config Release
+cmake --install external/Pyarmor-Static-Unpack-1shot/build --config Release
+python -m pip install pycryptodome
+```
+
+### 在界面里使用
+
+1. 启动 `pycdc-studio`
+2. 打开 `File -> Import Pyarmor Project...`
+3. 选择包含混淆脚本和 `pyarmor_runtime` 的项目根目录
+4. 等待 `.1shot.*` 结果生成并自动导入工作区
+
+说明：
+
+- 如果没有设置 `PYCDC_STUDIO_PYARMOR_OUTPUT_ROOT`，导入器会使用临时输出目录。
+- 一般来说，反汇编结果比反编译源码更可靠。
+- 如果目标是 PyInstaller 之类的归档包，仍然需要先用其他工具解包。
+- 打包后的 release 目标是不需要用户手动配置 Pyarmor 相关环境变量。
+
 ## AI 配置
 
 在使用 AI fallback 之前，需要先在 `设置` 中至少配置：
@@ -114,10 +174,11 @@ cmake --build build
 
 1. 启动 `pycdc-studio`
 2. 打开一个 `.pyc` / `.pyo`，或者直接把文件夹拖进窗口
-3. 如果要使用 AI fallback，请先通过菜单栏顶层的 `设置` 配置 AI 模型
-4. 在左侧树中选择文件或某个 code object
-5. 查看 native 结果、反汇编、元数据和 prompt
-6. 当原生反编译不完整或不正确时，对当前节点点击 `Retry with AI`
+3. 或者对 Pyarmor 项目使用 `File -> Import Pyarmor Project...`
+4. 如果要使用 AI fallback，请先通过菜单栏顶层的 `设置` 配置 AI 模型
+5. 在左侧树中选择文件或某个 code object
+6. 查看 native 结果、反汇编、元数据和 prompt
+7. 当原生反编译不完整或不正确时，对当前节点点击 `Retry with AI`
 
 ## 测试样例
 

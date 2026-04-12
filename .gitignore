@@ -80,3 +80,11 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build*/
+
+# Local integration tooling and test artifacts
+/.oneshot-packages/
+/.pyarmor-home/
+/.pyarmor-packages/
+/external/Pyarmor-Static-Unpack-1shot/
+/samples/
+/pyarmor.bug.log
